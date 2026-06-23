@@ -4,7 +4,7 @@ import logging
 
 from prettytable import PrettyTable
 
-from constants import DATETIME_FORMAT, FILE_OUTPUT, PRETTY_OUTPUT, RESULTS_DIR
+from constants import BASE_DIR, DATETIME_FORMAT, FILE_OUTPUT, PRETTY_OUTPUT
 
 SAVE_SUCCESS_MSG = 'Файл с результатами был сохранён: {file_path}'
 
@@ -26,10 +26,11 @@ def pretty_output(results, cli_args):
 
 def file_output(results, cli_args):
     """Сохраняет результаты в CSV-файл в директорию results/."""
-    RESULTS_DIR.mkdir(exist_ok=True)
+    results_dir = BASE_DIR / 'results'
+    results_dir.mkdir(exist_ok=True)
     now_formatted = dt.datetime.now().strftime(DATETIME_FORMAT)
     file_name = f'{cli_args.mode}_{now_formatted}.csv'
-    file_path = RESULTS_DIR / file_name
+    file_path = results_dir / file_name
     with open(file_path, 'w', encoding='utf-8') as f:
         csv.writer(f, dialect=csv.unix_dialect).writerows(results)
     logging.info(SAVE_SUCCESS_MSG.format(file_path=file_path))

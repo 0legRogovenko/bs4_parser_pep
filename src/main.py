@@ -7,7 +7,7 @@ import requests_cache
 from tqdm import tqdm
 
 from configs import configure_argument_parser, configure_logging
-from constants import DOWNLOADS_DIR, EXPECTED_STATUS, MAIN_DOC_URL, PEP_URL
+from constants import BASE_DIR, EXPECTED_STATUS, MAIN_DOC_URL, PEP_URL
 from exceptions import ParserFindTagException
 from outputs import control_output
 from utils import find_tag, get_soup
@@ -35,7 +35,7 @@ def whats_new(session):
         logging.warning(str(error))
         return results
     for a_tag in tqdm(soup.select(
-        '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 a',
+        '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a',
     )):
         version_link = urljoin(whats_new_url, a_tag['href'])
         try:
@@ -85,8 +85,9 @@ def download(session):
     )
     archive_url = urljoin(downloads_url, pdf_a4_tag['href'])
     filename = archive_url.split('/')[-1]
-    DOWNLOADS_DIR.mkdir(exist_ok=True)
-    archive_path = DOWNLOADS_DIR / filename
+    downloads_dir = BASE_DIR / 'downloads'
+    downloads_dir.mkdir(exist_ok=True)
+    archive_path = downloads_dir / filename
     response = session.get(archive_url)
     with open(archive_path, 'wb') as file:
         file.write(response.content)
