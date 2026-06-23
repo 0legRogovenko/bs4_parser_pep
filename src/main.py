@@ -7,8 +7,7 @@ import requests_cache
 from tqdm import tqdm
 
 from configs import configure_argument_parser, configure_logging
-from constants import BASE_DIR, EXPECTED_STATUS, MAIN_DOC_URL, PEP_URL
-from exceptions import ParserFindTagException
+from constants import BASE_DIR, DOWNLOADS_DIRNAME, EXPECTED_STATUS, MAIN_DOC_URL, PEP_URL
 from outputs import control_output
 from utils import find_tag, get_soup
 
@@ -28,24 +27,23 @@ VERSIONS_NOT_FOUND_MSG = 'Ничего не нашлось'
 def whats_new(session):
     """Парсит страницу «What's New in Python» и возвращает список статей."""
     whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
+    soup = get_soup(session, whats_new_url)
     results = [('Ссылка на статью', 'Заголовок', 'Редактор, автор')]
-    try:
-        soup = get_soup(session, whats_new_url)
-    except ConnectionError as error:
-        logging.warning(str(error))
-        return results
+    error_messages = []
     for a_tag in tqdm(soup.select(
         '#what-s-new-in-python div.toctree-wrapper li.toctree-l1 > a',
     )):
         version_link = urljoin(whats_new_url, a_tag['href'])
         try:
-            article_soup = get_soup(session, version_link)
+            soup = get_soup(session, version_link)
         except ConnectionError as error:
-            logging.warning(str(error))
+            error_messages.append(str(error))
             continue
-        h1 = find_tag(article_soup, 'h1')
-        dl = find_tag(article_soup, 'dl')
+        h1 = find_tag(soup, 'h1')
+        dl = find_tag(soup, 'dl')
         results.append((version_link, h1.text, dl.text))
+    for msg in error_messages:
+        logging.warning(msg)
     return results
 
 
@@ -61,7 +59,7 @@ def latest_versions(session):
             a_tags = ul.find_all('a')
             break
     else:
-        raise ParserFindTagException(VERSIONS_NOT_FOUND_MSG)
+        raise Exception(VERSIONS_NOT_FOUND_MSG)
     results = [('Ссылка на документацию', 'Версия', 'Статус')]
     pattern = r'Python (?P<version>\d\.\d+) \((?P<status>.*)\)'
     for a_tag in a_tags:
@@ -85,7 +83,7 @@ def download(session):
     )
     archive_url = urljoin(downloads_url, pdf_a4_tag['href'])
     filename = archive_url.split('/')[-1]
-    downloads_dir = BASE_DIR / 'downloads'
+    downloads_dir = BASE_DIR / DOWNLOADS_DIRNAME
     downloads_dir.mkdir(exist_ok=True)
     archive_path = downloads_dir / filename
     response = session.get(archive_url)
@@ -134,6 +132,7 @@ def pep(session):
     soup = get_soup(session, PEP_URL)
     status_count = defaultdict(int)
     mismatched = []
+    error_messages = []
     all_rows = [
         row for table in soup.find_all('table')
         for row in get_pep_rows(table)
@@ -142,18 +141,21 @@ def pep(session):
         try:
             actual = get_pep_status(session, pep_link)
         except ConnectionError as error:
-            logging.warning(str(error))
+            error_messages.append(str(error))
             continue
         if actual is None:
             continue
         if actual not in expected:
             mismatched.append((pep_link, actual, list(expected)))
         status_count[actual] += 1
+    for msg in error_messages:
+        logging.warning(msg)
     if mismatched:
         logging.warning(MISMATCH_WARNING_MSG)
         for url, actual, expected in mismatched:
-            logging.warning(MISMATCH_DETAIL_MSG.format(url=url, actual=actual,
-                                                       expected=expected))
+            logging.warning(MISMATCH_DETAIL_MSG.format(
+                url=url, actual=actual, expected=expected,
+            ))
     return [
         ('Статус', 'Количество'),
         *status_count.items(),
@@ -186,7 +188,6 @@ def main():
             control_output(results, args)
     except Exception as error:
         logging.exception(error)
-        return
     logging.info(PARSER_DONE_MSG)
 
 

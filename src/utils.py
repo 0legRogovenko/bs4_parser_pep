@@ -7,10 +7,10 @@ CONNECTION_ERROR_MSG = 'Возникла ошибка при загрузке с
 TAG_NOT_FOUND_MSG = 'Не найден тег {tag} {attrs}'
 
 
-def get_response(session, url, encoding='utf-8'):
+def get_response(session, url, encoding='utf-8', timeout=3):
     """Выполняет GET-запрос и возвращает объект ответа."""
     try:
-        response = session.get(url, timeout=3)
+        response = session.get(url, timeout=timeout)
         response.encoding = encoding
         return response
     except RequestException as error:
