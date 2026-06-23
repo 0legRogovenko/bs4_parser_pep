@@ -4,7 +4,8 @@ import logging
 
 from prettytable import PrettyTable
 
-from constants import BASE_DIR, DATETIME_FORMAT, FILE_OUTPUT, PRETTY_OUTPUT, RESULTS_DIRNAME
+from constants import (BASE_DIR, DATETIME_FORMAT, FILE_OUTPUT, PRETTY_OUTPUT,
+                       RESULTS_DIRNAME)
 
 SAVE_SUCCESS_MSG = 'Файл с результатами был сохранён: {file_path}'
 
