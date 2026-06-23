@@ -151,7 +151,8 @@ def pep(session):
     if mismatched:
         logging.warning(MISMATCH_WARNING_MSG)
         for url, actual, expected in mismatched:
-            logging.warning(MISMATCH_DETAIL_MSG.format(url=url, actual=actual, expected=expected))
+            logging.warning(MISMATCH_DETAIL_MSG.format(url=url, actual=actual,
+                                                       expected=expected))
     return [
         ('Статус', 'Количество'),
         *status_count.items(),
